@@ -85,8 +85,8 @@ class Fragmenter:
 
     def __init__(self, mtu: int) -> None:
         self._seq_num = 0
-        self._mtu = mtu
-        self._mss = mtu - 24
+        self._mtu = mtu - 64
+        self._mss = self._mtu - 24
 
     def fragment(self, pkt: bytes) -> T.List[bytes]:
         if len(pkt) <= self._mtu:
