@@ -3,8 +3,13 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+[pipenv]
+allow_prereleases = true
+
 [packages]
 aioquic = "~=0.9"
+funcy = "~=1.15"
+python-ndn = "0.3a1"
 
 [dev-packages]
 autopep8 = "*"
