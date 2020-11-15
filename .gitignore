@@ -1,2 +1,5 @@
+.data
 .venv
 .vscode
+Pipfile.lock
+ecosystem.config.js
