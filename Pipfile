@@ -1,0 +1,18 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+aioquic = "~=0.9"
+
+[dev-packages]
+autopep8 = "*"
+isort = "*"
+pylint = "*"
+
+[requires]
+python_version = "3.8"
+
+[scripts]
+lint = "sh -c 'isort *.py && autopep8 -i *.py'"
