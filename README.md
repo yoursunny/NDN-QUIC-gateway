@@ -1,6 +1,6 @@
 # NDN-QUIC gateway
 
-This program bridges between Chromium [QuicTransport API](https://web.dev/quictransport/) and Named Data Networking's plain UDP transport.
+This program bridges between Chromium [WebTransport API](https://web.dev/webtransport/) and Named Data Networking's plain UDP transport.
 It is designed to work with [NDNts](https://yoursunny.com/p/NDNts/) `@ndn/quic-transport` package.
 
 ## Deployment Instructions
@@ -41,4 +41,10 @@ It is designed to work with [NDNts](https://yoursunny.com/p/NDNts/) `@ndn/quic-t
             --fullchain-file '/home/node/NDN-QUIC-gateway/.data/tls.cert' \
             --key-file '/home/node/NDN-QUIC-gateway/.data/tls.key' \
             --reloadcmd 'sudo -u node bash -ic "pm2 restart NDN-QUIC-gateway"'
+    ```
+
+6. Edit UDP MTU in NFD configuration:
+
+    ```bash
+    infoedit -f /etc/ndn/nfd.conf -s face_system.udp.unicast_mtu -v 1337
     ```
