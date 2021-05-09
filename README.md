@@ -46,5 +46,5 @@ It is designed to work with [NDNts](https://yoursunny.com/p/NDNts/) `@ndn/quic-t
 6. Edit UDP MTU in NFD configuration:
 
     ```bash
-    infoedit -f /etc/ndn/nfd.conf -s face_system.udp.unicast_mtu -v 1337
+    infoedit -f /etc/ndn/nfd.conf -s face_system.udp.unicast_mtu -v 1200
     ```
