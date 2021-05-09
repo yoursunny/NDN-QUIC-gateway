@@ -117,6 +117,7 @@ class H3Protocol(QuicConnectionProtocol):
         self._udp = UdpConn(self._id, addr, self._udp_receive)
         self._http = H3Connection(self._quic)
         self._datagram_flow = -1
+        self._mtu = mtu
         aio.create_task(self._wait_disconnect())
 
     def quic_event_received(self, event: QuicEvent) -> None:
@@ -166,6 +167,8 @@ class H3Protocol(QuicConnectionProtocol):
         self._udp.send(buf.data_slice(buf.tell(), buf.capacity))
 
     def _udp_receive(self, pkt: bytes) -> None:
+        if len(pkt) > self._mtu:
+            return
         buf = QBuffer(8 + len(pkt))
         buf.push_uint_var(self._datagram_flow)
         buf.push_bytes(pkt)
@@ -193,8 +196,8 @@ if __name__ == '__main__':
                         help='QUIC server address', metavar='ADDR')
     parser.add_argument('--listen-port', type=int, default=6367,
                         help='QUIC server port', metavar='PORT')
-    parser.add_argument('--mtu', type=int, default=1366,
-                        help='QUIC max datagram frame size')
+    parser.add_argument('--mtu', type=int, default=1200,
+                        help='UDP max packet size')
     parser.add_argument('--router-addr', default='127.0.0.1',
                         help='router address', metavar='ADDR')
     parser.add_argument('--router-port', type=int,
@@ -204,7 +207,7 @@ if __name__ == '__main__':
     configuration = QuicConfiguration(
         alpn_protocols=h3c.H3_ALPN,
         is_client=False,
-        max_datagram_frame_size=opts.mtu,
+        max_datagram_frame_size=32+opts.mtu,
     )
     configuration.load_cert_chain(opts.cert, opts.key)
 
