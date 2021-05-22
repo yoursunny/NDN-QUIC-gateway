@@ -8,6 +8,8 @@ allow_prereleases = true
 
 [packages]
 aioquic = "~=0.9"
+flask = {version = "~=2.0", extras = ["async"]}
+python-ndn = "0.3a1"
 
 [dev-packages]
 autopep8 = "*"

@@ -6,7 +6,7 @@ import typing as T
 class UdpConn:
     """Connection to NDN router over UDP."""
 
-    _logger = logging.getLogger("ndn-udp")
+    _logger = logging.getLogger("ndn-quic-gateway.UdpConn")
 
     class Protocol(aio.DatagramProtocol):
         def __init__(self, on_receive: T.Callable[[bytes], None]):

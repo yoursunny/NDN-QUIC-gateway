@@ -20,16 +20,16 @@ from h3conn import H3Connection
 from udpconn import UdpConn
 
 
-class H3Protocol(QuicConnectionProtocol):
+class H3Server(QuicConnectionProtocol):
     """Chromium WebTransport protocol handler."""
 
-    _logger = logging.getLogger("ndn-quic")
+    _logger = logging.getLogger("ndn-quic-gateway.H3Server")
     _last_id = 0
 
     def __init__(self, addr: T.Tuple[str, int], mtu: int, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        H3Protocol._last_id += 1
-        self._id = H3Protocol._last_id
+        H3Server._last_id += 1
+        self._id = H3Server._last_id
         self._udp = UdpConn(self._id, addr, self._udp_receive)
         self._http = H3Connection(self._quic)
         self._datagram_flow = -1
@@ -48,7 +48,7 @@ class H3Protocol(QuicConnectionProtocol):
                 self._handle_datagram_frame(event)
 
         except Exception as e:
-            H3Protocol._logger.warning(
+            H3Server._logger.warning(
                 '[%d] QUIC event error: %s', self._id, str(e))
             self.close()
 
@@ -62,7 +62,7 @@ class H3Protocol(QuicConnectionProtocol):
             headers[str(key, encoding="utf8")] = str(value, encoding="utf8")
 
         if headers[":method"] == "CONNECT" and headers[":path"] == "/ndn":
-            H3Protocol._logger.info(
+            H3Server._logger.info(
                 '[%d] connected from %s', self._id, headers["origin"])
         self._datagram_flow = int("".join(itertools.takewhile(
             str.isdigit, headers["datagram-flow-id"])))
@@ -93,7 +93,7 @@ class H3Protocol(QuicConnectionProtocol):
 
     async def _wait_disconnect(self):
         await self.wait_closed()
-        H3Protocol._logger.info('[%d] disconnected', self._id)
+        H3Server._logger.info('[%d] disconnected', self._id)
         self._udp.close()
 
 
@@ -133,7 +133,7 @@ if __name__ == '__main__':
                  opts.router_addr, opts.router_port)
 
     def create_protocol(*args, **kwargs):
-        return H3Protocol((opts.router_addr, opts.router_port), opts.mtu, *args, **kwargs)
+        return H3Server((opts.router_addr, opts.router_port), opts.mtu, *args, **kwargs)
 
     loop = aio.new_event_loop()
     loop.run_until_complete(
