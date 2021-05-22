@@ -2,4 +2,5 @@
 .venv
 .vscode
 Pipfile.lock
+__pycache__
 ecosystem.config.js
