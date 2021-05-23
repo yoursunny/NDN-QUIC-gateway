@@ -9,7 +9,8 @@ allow_prereleases = true
 [packages]
 aioquic = "~=0.9"
 flask = {version = "~=2.0", extras = ["async"]}
-python-ndn = "0.3a1"
+python-ndn = "0.3a1.post3"
+uwsgi = "~=2.0"
 
 [dev-packages]
 autopep8 = "*"
@@ -17,4 +18,5 @@ isort = "*"
 pylint = "*"
 
 [scripts]
+health = "env FLASK_APP=health flask run"
 lint = "sh -c 'isort *.py && autopep8 -i *.py'"
