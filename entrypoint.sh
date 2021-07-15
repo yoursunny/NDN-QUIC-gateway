@@ -9,7 +9,7 @@ if [[ "$ACT" == GATEWAY ]]; then
     --listen-addr "${ADDR:-::}" --listen-port "${PORT:-6367}" \
     --router-addr "${ROUTER}"
 elif [[ "$ACT" == HEALTH ]]; then
-  exec uwsgi --module health-wsgi --http "${ADDR:-0.0.0.0}:${PORT:-5000}"
+  exec uwsgi --wsgi-file health.py --callable app --http-socket "${ADDR:-0.0.0.0}:${PORT:-5000}"
 else
   exec "$ACT" "$@"
 fi
