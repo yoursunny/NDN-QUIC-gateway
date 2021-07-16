@@ -11,6 +11,7 @@ aioquic = "~=0.9"
 flask = {version = "~=2.0", extras = ["async"]}
 python-ndn = "0.3a1.post4"
 uwsgi = "~=2.0"
+dataclasses-json = "*"
 
 [dev-packages]
 autopep8 = "*"

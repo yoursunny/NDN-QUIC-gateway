@@ -2,14 +2,11 @@ import asyncio as aio
 import logging
 import typing as T
 from urllib.parse import ParseResult as URL
-from urllib.parse import urlparse
 
 import aioquic.h3.connection as h3c
 import aioquic.h3.events as h3e
 from aioquic.asyncio import QuicConnectionProtocol
-from aioquic.asyncio.client import connect
 from aioquic.buffer import Buffer as QBuffer
-from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.connection import END_STATES
 from aioquic.quic.events import DatagramFrameReceived, QuicEvent
 
@@ -97,28 +94,3 @@ class H3Client(QuicConnectionProtocol):
         self._quic.send_datagram_frame(buf.data)
         self.transmit()
         return True
-
-
-async def run():
-    url = urlparse("https://dal.quic.g.ndn.today:6367/ndn")
-    origin = "https://ndn-fch.yoursunny.dev"
-    mtu = 1200
-    configuration = QuicConfiguration(
-        alpn_protocols=h3c.H3_ALPN,
-        is_client=True,
-        max_datagram_frame_size=32+mtu,
-    )
-
-    def create_protocol(*args, **kwargs):
-        return H3Client(url, origin, mtu, *args, **kwargs)
-
-    async with connect(
-        host=url.hostname,
-        port=url.port,
-        configuration=configuration,
-        create_protocol=create_protocol,
-    ) as client:
-        client = T.cast(H3Client, client)
-        await aio.sleep(1)
-        client.send(bytes.fromhex("050F070508036E646E21000A04A0A1A2A3"))
-        await aio.sleep(1)
