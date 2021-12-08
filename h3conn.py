@@ -1,29 +1,27 @@
+import typing as T
+
 import aioquic.h3.connection as h3c
-from aioquic.quic.connection import QuicConnection
+
+# https://datatracker.ietf.org/doc/html/draft-ietf-masque-h3-datagram-05#section-9.1
+H3_DATAGRAM_05 = 0xffd277
+# https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-h3-websockets-00#section-5
+ENABLE_CONNECT_PROTOCOL = 0x08
 
 
 class H3Connection(h3c.H3Connection):
     """HTTP/3 connection with SETTINGS frame override."""
 
-    def __init__(self, quic: QuicConnection):
-        super().__init__(quic)
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
 
-    def _init_connection(self) -> None:
-        self._local_control_stream_id = self._create_uni_stream(
-            h3c.StreamType.CONTROL)
-        self._quic.send_stream_data(
-            self._local_control_stream_id,
-            h3c.encode_frame(
-                h3c.FrameType.SETTINGS,
-                h3c.encode_settings(
-                    {
-                        0x2b603742: 1,  # SETTINGS_ENABLE_WEBTRANSPORT
-                        0x276: 1,  # H3_DATAGRAM
-                    }
-                ),
-            ),
-        )
-        self._local_encoder_stream_id = self._create_uni_stream(
-            h3c.StreamType.QPACK_ENCODER)
-        self._local_decoder_stream_id = self._create_uni_stream(
-            h3c.StreamType.QPACK_DECODER)
+    def _validate_settings(self, settings: T.Dict[int, int]) -> None:
+        if settings.get(H3_DATAGRAM_05, 0) == 1:
+            settings[h3c.Setting.H3_DATAGRAM] = 1
+        return super()._validate_settings(settings)
+
+    def _get_local_settings(self) -> T.Dict[int, int]:
+        settings = super()._get_local_settings()
+        if self._enable_webtransport:
+            settings[H3_DATAGRAM_05] = 1
+            settings[ENABLE_CONNECT_PROTOCOL] = 1
+        return settings

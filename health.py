@@ -9,7 +9,7 @@ import aioquic.h3.connection as h3c
 from aioquic.asyncio.client import connect
 from aioquic.quic.configuration import QuicConfiguration
 from dataclasses_json import dataclass_json
-from flask import Flask, Response, abort, request
+from flask import Flask, Response, request
 from ndn.encoding import InterestParam, make_interest
 from ndn.encoding.name import Name
 from ndn.encoding.ndn_format_0_3 import parse_data

@@ -4,17 +4,15 @@ NDN-QUIC gateway.
 
 import argparse
 import asyncio as aio
-import itertools
 import logging
 import typing as T
 
-import aioquic.h3.connection as h3c
-import aioquic.h3.events as h3e
 from aioquic.asyncio import QuicConnectionProtocol, serve
-from aioquic.buffer import Buffer as QBuffer
+from aioquic.h3.connection import H3_ALPN
+from aioquic.h3.events import (DatagramReceived, H3Event, Headers,
+                               HeadersReceived)
 from aioquic.quic.configuration import QuicConfiguration
-from aioquic.quic.connection import END_STATES, QuicConnection
-from aioquic.quic.events import DatagramFrameReceived, QuicEvent
+from aioquic.quic.events import QuicEvent
 
 from h3conn import H3Connection
 from udpconn import UdpConn
@@ -31,64 +29,62 @@ class H3Server(QuicConnectionProtocol):
         H3Server._last_id += 1
         self._id = H3Server._last_id
         self._udp = UdpConn(self._id, addr, self._udp_receive)
-        self._http = H3Connection(self._quic)
-        self._datagram_flow = -1
+        self._http = H3Connection(self._quic, enable_webtransport=True)
         self._mtu = mtu
+        self._datagram_flow = -1
         aio.create_task(self._wait_disconnect())
 
     def quic_event_received(self, event: QuicEvent) -> None:
         try:
-            if self._quic._close_pending or self._quic._state in END_STATES:
-                return
-
             for http_event in self._http.handle_event(event):
                 self.http_event_received(http_event)
-
-            if isinstance(event, DatagramFrameReceived):
-                self._handle_datagram_frame(event)
 
         except Exception as e:
             H3Server._logger.warning(
                 '[%d] QUIC event error: %s', self._id, str(e))
             self.close()
 
-    def http_event_received(self, event: h3c.H3Event) -> None:
-        if isinstance(event, h3e.HeadersReceived):
+    def http_event_received(self, event: H3Event) -> None:
+        if isinstance(event, HeadersReceived):
             self._handle_h3_headers(event)
+        elif isinstance(event, DatagramReceived):
+            self._handle_h3_datagram(event)
 
-    def _handle_h3_headers(self, event: h3e.HeadersReceived):
-        headers: T.Dict[str, str] = dict()
+    def _handle_h3_headers(self, event: HeadersReceived):
+        headers: T.Dict[bytes, bytes] = dict()
         for key, value in event.headers:
-            headers[str(key, encoding="utf8")] = str(value, encoding="utf8")
+            headers[key] = value
 
-        if headers[":method"] == "CONNECT" and headers[":path"] == "/ndn":
-            H3Server._logger.info(
-                '[%d] connected from %s', self._id, headers["origin"])
-        self._datagram_flow = int("".join(itertools.takewhile(
-            str.isdigit, headers["datagram-flow-id"])))
+        if (headers[b":path"] != b"/ndn" or
+            headers[b":method"] != b"CONNECT" or
+                headers[b":protocol"] != b"webtransport"):
+            self._send_response(event.stream_id, 404)
+            return
 
-        self._http.send_headers(
-            stream_id=event.stream_id,
-            headers=[
-                (b":status", b"200")
-            ])
-
+        H3Server._logger.info(
+            '[%d] connected from %s', self._id, str(headers[b"origin"], encoding="utf8"))
         aio.create_task(self._udp.open())
 
-    def _handle_datagram_frame(self, event: DatagramFrameReceived) -> None:
-        buf = QBuffer(len(event.data), event.data)
-        flow = buf.pull_uint_var()
-        if flow != self._datagram_flow:
-            return
-        self._udp.send(buf.data_slice(buf.tell(), buf.capacity))
+        self._send_response(event.stream_id, 200, [
+            (b"sec-webtransport-http3-draft", b"draft02"),
+        ])
+
+    def _send_response(self, stream: int, status: int, headers: Headers = []) -> None:
+        self._http.send_headers(
+            stream_id=stream,
+            headers=[(b":status", str(status).encode())] + headers,
+            end_stream=status >= 300
+        )
+        self.transmit()
+
+    def _handle_h3_datagram(self, event: DatagramReceived) -> None:
+        self._datagram_flow = event.flow_id
+        self._udp.send(event.data)
 
     def _udp_receive(self, pkt: bytes) -> None:
         if len(pkt) > self._mtu:
             return
-        buf = QBuffer(8 + len(pkt))
-        buf.push_uint_var(self._datagram_flow)
-        buf.push_bytes(pkt)
-        self._quic.send_datagram_frame(buf.data)
+        self._http.send_datagram(self._datagram_flow, pkt)
         self.transmit()
 
     async def _wait_disconnect(self):
@@ -121,7 +117,7 @@ if __name__ == '__main__':
     opts = parser.parse_args()
 
     configuration = QuicConfiguration(
-        alpn_protocols=h3c.H3_ALPN,
+        alpn_protocols=H3_ALPN,
         is_client=False,
         max_datagram_frame_size=32+opts.mtu,
     )

@@ -1,14 +1,10 @@
-import asyncio as aio
 import logging
 import typing as T
 from urllib.parse import ParseResult as URL
 
-import aioquic.h3.connection as h3c
-import aioquic.h3.events as h3e
 from aioquic.asyncio import QuicConnectionProtocol
-from aioquic.buffer import Buffer as QBuffer
-from aioquic.quic.connection import END_STATES
-from aioquic.quic.events import DatagramFrameReceived, QuicEvent
+from aioquic.h3.events import DatagramReceived, H3Event, HeadersReceived
+from aioquic.quic.events import QuicEvent
 
 from h3conn import H3Connection
 
@@ -21,7 +17,7 @@ class H3Client(QuicConnectionProtocol):
         super().__init__(*args, **kwargs)
         H3Client._last_id += 1
         self._id = H3Client._last_id
-        self._http = H3Connection(self._quic)
+        self._http = H3Connection(self._quic, enable_webtransport=True)
         self._url = url
         self._origin = origin
         self._mtu = mtu
@@ -41,32 +37,27 @@ class H3Client(QuicConnectionProtocol):
             (b":path", self._url.path.encode()),
             (b":protocol", b"webtransport"),
             (b"origin", self._origin.encode()),
-            (b"datagram-flow-id", str(self._datagram_flow).encode()),
         ]
         self._http.send_headers(
             stream_id=self._webtr_connect_stream, headers=headers)
 
     def quic_event_received(self, event: QuicEvent) -> None:
         try:
-            if self._quic._close_pending or self._quic._state in END_STATES:
-                return
-
             for http_event in self._http.handle_event(event):
                 self.http_event_received(http_event)
-
-            if isinstance(event, DatagramFrameReceived):
-                self._handle_datagram_frame(event)
 
         except Exception as e:
             H3Client._logger.warning(
                 '[%d] QUIC event error: %s', self._id, str(e))
             self.close()
 
-    def http_event_received(self, event: h3c.H3Event) -> None:
-        if isinstance(event, h3e.HeadersReceived):
+    def http_event_received(self, event: H3Event) -> None:
+        if isinstance(event, HeadersReceived):
             self._handle_h3_headers(event)
+        elif isinstance(event, DatagramReceived):
+            self._handle_h3_datagram(event)
 
-    def _handle_h3_headers(self, event: h3e.HeadersReceived):
+    def _handle_h3_headers(self, event: HeadersReceived):
         if event.stream_id != self._webtr_connect_stream:
             return
         self._webtr_connected = True
@@ -74,13 +65,10 @@ class H3Client(QuicConnectionProtocol):
             self.send(pkt)
         self._send_queue.clear()
 
-    def _handle_datagram_frame(self, event: DatagramFrameReceived) -> None:
-        buf = QBuffer(len(event.data), event.data)
-        flow = buf.pull_uint_var()
-        if flow != self._datagram_flow:
+    def _handle_h3_datagram(self, event: DatagramReceived) -> None:
+        if event.flow_id != self._datagram_flow:
             return
-        pkt = buf.data_slice(buf.tell(), buf.capacity)
-        self.received.append(pkt)
+        self.received.append(event.data)
 
     def send(self, pkt: bytes) -> bool:
         if len(pkt) > self._mtu:
@@ -88,9 +76,6 @@ class H3Client(QuicConnectionProtocol):
         if not self._webtr_connected:
             self._send_queue.append(pkt)
             return True
-        buf = QBuffer(8 + len(pkt))
-        buf.push_uint_var(self._datagram_flow)
-        buf.push_bytes(pkt)
-        self._quic.send_datagram_frame(buf.data)
+        self._http.send_datagram(self._datagram_flow, pkt)
         self.transmit()
         return True

@@ -7,11 +7,11 @@ name = "pypi"
 allow_prereleases = true
 
 [packages]
-aioquic = "~=0.9"
+aioquic = "~=0.9.17"
+dataclasses-json = "~=0.5.6"
 flask = {version = "~=2.0", extras = ["async"]}
-python-ndn = "0.3a1.post4"
+python-ndn = "0.3"
 uwsgi = "~=2.0"
-dataclasses-json = "*"
 
 [dev-packages]
 autopep8 = "*"

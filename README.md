@@ -9,7 +9,7 @@ It is designed to work with [NDNts](https://yoursunny.com/p/NDNts/) `@ndn/quic-t
 
     ```bash
     sudo apt install python3-dev python3-venv
-    curl -sL https://bootstrap.pypa.io/get-pip.py | sudo python3
+    curl -fsLS https://bootstrap.pypa.io/get-pip.py | sudo python3
     sudo pip install -U pip pipenv
     ```
 
