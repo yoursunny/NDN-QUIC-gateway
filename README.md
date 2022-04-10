@@ -1,9 +1,14 @@
 # NDN-QUIC gateway
 
-This program bridges between Chromium [WebTransport API](https://web.dev/webtransport/) and Named Data Networking's plain UDP transport.
+This repository provides a proxy between Chromium [WebTransport API](https://web.dev/webtransport/) and Named Data Networking's plain UDP transport.
 It is designed to work with [NDNts](https://yoursunny.com/p/NDNts/) `@ndn/quic-transport` package.
 
-## Deployment Instructions
+## `gateway.py`
+
+This script is an HTTP/3 WebTransport server that accepts WebTransport sessions and forwards datagrams to a plain UDP server such as NDN forwarder.
+It has been deprecated in favor of [NDN HTTP/3 WebTransport Gateway](https://github.com/yoursunny/NDN-webtrans) written in Go.
+
+### Deployment Instructions
 
 1. Install system-wide dependencies in a sudoer user:
 
@@ -48,3 +53,9 @@ It is designed to work with [NDNts](https://yoursunny.com/p/NDNts/) `@ndn/quic-t
     ```bash
     infoedit -f /etc/ndn/nfd.conf -s face_system.udp.unicast_mtu -v 1200
     ```
+
+## `health.py`
+
+This script is an [NDN-FCH 2021](https://github.com/11th-ndn-hackathon/ndn-fch) health probe for HTTP/3.
+It should be deployed as a Docker container.
+No special configuration is necessary.

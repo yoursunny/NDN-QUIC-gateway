@@ -3,10 +3,9 @@ import typing as T
 from urllib.parse import ParseResult as URL
 
 from aioquic.asyncio import QuicConnectionProtocol
+from aioquic.h3.connection import H3Connection
 from aioquic.h3.events import DatagramReceived, H3Event, HeadersReceived
 from aioquic.quic.events import QuicEvent
-
-from h3conn import H3Connection
 
 
 class H3Client(QuicConnectionProtocol):
@@ -21,7 +20,7 @@ class H3Client(QuicConnectionProtocol):
         self._url = url
         self._origin = origin
         self._mtu = mtu
-        self._datagram_flow = 1
+        self._datagram_flow = 0
         self._webtr_connect_stream: T.Optional[int] = None
         self._webtr_connected = False
         self._send_queue: T.List[bytes] = []
@@ -30,6 +29,7 @@ class H3Client(QuicConnectionProtocol):
 
     def _send_connect(self):
         self._webtr_connect_stream = self._quic.get_next_available_stream_id()
+        self._datagram_flow = self._webtr_connect_stream // 4
         headers = [
             (b":method", b"CONNECT"),
             (b":scheme", b"https"),
@@ -66,8 +66,8 @@ class H3Client(QuicConnectionProtocol):
         self._send_queue.clear()
 
     def _handle_h3_datagram(self, event: DatagramReceived) -> None:
-        if event.flow_id != self._datagram_flow:
-            return
+        # if event.flow_id != self._datagram_flow:
+        #     return
         self.received.append(event.data)
 
     def send(self, pkt: bytes) -> bool:
