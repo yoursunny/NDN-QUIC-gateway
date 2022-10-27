@@ -3,7 +3,7 @@
 This repository provides a proxy between Chromium [WebTransport API](https://web.dev/webtransport/) and Named Data Networking's plain UDP transport.
 It is designed to work with [NDNts](https://yoursunny.com/p/NDNts/) `@ndn/quic-transport` package.
 
-## `gateway.py`
+## `gateway.py` (deprecated)
 
 This script is an HTTP/3 WebTransport server that accepts WebTransport sessions and forwards datagrams to a plain UDP server such as NDN forwarder.
 It has been deprecated in favor of [NDN HTTP/3 WebTransport Gateway](https://github.com/yoursunny/NDN-webtrans) written in Go.

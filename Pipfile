@@ -9,9 +9,9 @@ allow_prereleases = true
 [packages]
 aioquic = "~=0.9.20"
 dataclasses-json = "~=0.5.7"
-flask = {version = "~=2.1.1", extras = ["async"]}
-python-ndn = "0.3"
-uwsgi = "~=2.0.20"
+flask = {version = "~=2.2.2", extras = ["async"]}
+python-ndn = "0.3.post2"
+uwsgi = "~=2.0.21"
 
 [dev-packages]
 autopep8 = "*"

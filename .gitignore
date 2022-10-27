@@ -4,3 +4,4 @@
 Pipfile.lock
 __pycache__
 ecosystem.config.js
+requirements.txt

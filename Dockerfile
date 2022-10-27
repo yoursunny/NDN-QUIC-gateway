@@ -1,8 +1,9 @@
 FROM python:3.10 AS pipenv
 WORKDIR /app
 COPY Pipfile .
-RUN pip install --no-cache-dir pipenv && \
-    pipenv lock -r >requirements.txt
+RUN pip install --no-cache-dir pipenv \
+ && pipenv lock \
+ && pipenv requirements >requirements.txt
 
 FROM python:3.10
 WORKDIR /app
